@@ -258,7 +258,10 @@ foreach ($hora in $horaArray) {
     Write-Info "Destino: $outputFile"
     Write-Host ""
 
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     & $ffmpeg -y -i $m3u8Url -c copy -bsf:a aac_adtstoasc $outputFile 2>&1 | Select-String -Pattern "time=|error"
+    $ErrorActionPreference = $prevEAP
 
     if (-not (Test-Path $outputFile)) {
         Write-Err "La descarga fallo para las ${hora}hs"
@@ -268,7 +271,10 @@ foreach ($hora in $horaArray) {
     $fileSize = "{0:N1} MB" -f ((Get-Item $outputFile).Length / 1MB)
     $duration = ""
     if ($ffprobe) {
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         $duration = & $ffprobe -v quiet -show_entries format=duration -of csv=p=0 $outputFile 2>$null
+        $ErrorActionPreference = $prevEAP
         if ($duration) {
             $durationSec = [math]::Floor([double]$duration)
             $durationMin = [math]::Floor($durationSec / 60)
@@ -285,7 +291,10 @@ foreach ($hora in $horaArray) {
     Write-Step "Cortando en clips de 15 segundos..."
 
     $clipPattern = Join-Path $clipsDir "${fileBase}_clip_%03d.mp4"
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     & $ffmpeg -y -i $outputFile -c copy -map 0 -segment_time 15 -f segment -reset_timestamps 1 $clipPattern 2>&1 | Out-Null
+    $ErrorActionPreference = $prevEAP
 
     # Renombrar clips con timestamp legible
     $clipFiles = Get-ChildItem -Path $clipsDir -Filter "${fileBase}_clip_*.mp4" | Sort-Object Name
